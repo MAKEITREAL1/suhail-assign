@@ -1,35 +1,102 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Storage Demo</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Secure Signup (Fixed)</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <style>
+      /* Basic Styling to make it look good */
+      body { font-family: sans-serif; background: #f4f4f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+      .container { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 300px; text-align: center; }
+      input { width: 90%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; }
+      button { background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; width: 100%; cursor: pointer; font-size: 16px; }
+      button:disabled { background: #ccc; }
+      #status { margin-top: 15px; font-size: 0.9em; }
+    </style>
+  </head>
+  <body>
 
     <div class="container">
-        <h2>Create Account</h2>
-        <p>This demo hashes your password before sending it to Firestore.</p>
-        
-        <form id="signupForm">
-            <div class="input-group">
-                <label>Email Address</label>
-                <input type="email" id="email" required placeholder="user@example.com">
-            </div>
+      <h2>Create Account</h2>
+      <p>Passwords are hashed before saving.</p>
+      
+      <form id="signupForm">
+        <input type="email" id="email" placeholder="Email Address" required />
+        <input type="password" id="password" placeholder="Password" required />
+        <button type="submit" id="submitBtn">Sign Up</button>
+      </form>
 
-            <div class="input-group">
-                <label>Password</label>
-                <input type="password" id="password" required placeholder="********">
-            </div>
-
-            <button type="submit" id="submitBtn">Sign Up</button>
-        </form>
-
-        <div id="status"></div>
+      <div id="status"></div>
     </div>
 
-    <script type="module" src="app.js"></script>
+    <script>
+      // 2. YOUR CONFIGURATION
+      const firebaseConfig = {
+        apiKey: "AIzaSyBpf-zw7WdMEWFrAYVDoeCKY07ShUu_mI4",
+        authDomain: "suhail-assign.firebaseapp.com",
+        projectId: "suhail-assign",
+        storageBucket: "suhail-assign.firebasestorage.app",
+        messagingSenderId: "958317833922",
+        appId: "1:958317833922:web:5aa492790357dc6999555b",
+      };
 
-</body>
+      // 3. Initialize Firebase (The simple way)
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.firestore();
+
+      // 4. Hashing Function (Standard Browser API)
+      async function hashPassword(string) {
+        const utf8 = new TextEncoder().encode(string);
+        const hashBuffer = await crypto.subtle.digest("SHA-256", utf8);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+      }
+
+      // 5. Form Logic
+      const form = document.getElementById("signupForm");
+      const statusDiv = document.getElementById("status");
+      const btn = document.getElementById("submitBtn");
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault(); // Stop reload
+
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
+
+        btn.innerText = "Processing...";
+        btn.disabled = true;
+
+        try {
+          // A. Hash the password
+          const hashedPassword = await hashPassword(password);
+          console.log("Hashed Password:", hashedPassword);
+
+          // B. Save to Firestore
+          await db.collection("users").add({
+            email: email,
+            password: hashedPassword,
+            createdAt: new Date() // Standard Date object
+          });
+
+          // C. Success Message
+          statusDiv.innerText = "✅ Data saved successfully";
+          statusDiv.style.color = "green";
+          form.reset();
+
+        } catch (error) {
+          console.error("Error:", error);
+          statusDiv.innerText = "❌ Error: " + error.message;
+          statusDiv.style.color = "red";
+        } finally {
+          btn.innerText = "Sign Up";
+          btn.disabled = false;
+        }
+      });
+    </script>
+
+  </body>
 </html>
